@@ -1,0 +1,6 @@
+[workspace]
+members = ["pwa", "cli", "server", "shared"]
+
+# ugh, `cargo build` in the root fails, was hoping this helped but did not :/
+# [workspace.dependencies]
+# shared = { path = "shared", default-features = false, features = ["rust"] }

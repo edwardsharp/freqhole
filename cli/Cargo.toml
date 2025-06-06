@@ -1,0 +1,15 @@
+[package]
+name = "cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+sled = "0.34.7"
+walkdir = "2"
+uuid = { version = "1", features = ["v4"] }
+
+[dependencies.shared]
+path = "../shared"
+features = ["rust"]
+default-features = false

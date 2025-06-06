@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>WASM Audio Demo</title>
+    </head>
+    <body>
+        <h1>🎵 WASM Audio Demo</h1>
+        <form>
+            <label>
+                id
+                <input type="text" name="id" />
+            </label>
+            <label>
+                title
+                <input type="text" name="title" />
+            </label>
+            <label>
+                path
+                <input type="text" name="path" />
+            </label>
+            <button id="save">add new song</button>
+        </form>
+
+        <div id="songlist"></div>
+
+        <script type="module">
+            import init, {
+                save_sample_song,
+                get_all_songs,
+            } from "../pkg/pwa.js";
+
+            const render_song = (song) => {
+                const songlist = document.getElementById("songlist");
+                const li = document.createElement("li");
+                li.innerHTML = `
+              <strong>${song.title}</strong>
+              <button onclick="playSong('${song.id}', '${song.path}')">Play</button>
+              <button onclick="downloadSong('${song.id}', '${song.path}')">Download</button>
+            `;
+                songlist.appendChild(li);
+            };
+
+            document.getElementById("save").onclick = (e) => {
+                e.preventDefault();
+                const formData = new FormData(document.querySelector("form"));
+                const song = Object.fromEntries(formData.entries());
+                console.log("new song data:", song);
+                save_sample_song(song)
+                    .then(() => {
+                        render_song(song);
+                    })
+                    .catch((e) => alert("Error: " + e));
+            };
+
+            init().then(() => {
+                get_all_songs()
+                    .then((songs) => {
+                        console.log("zomg songs:", songs);
+                        songs.forEach(render_song);
+                    })
+                    .catch((e) =>
+                        console.warn("onoz get_all_songs caught error:", e),
+                    );
+            });
+        </script>
+    </body>
+</html>
