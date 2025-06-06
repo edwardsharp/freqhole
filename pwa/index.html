@@ -6,17 +6,65 @@
         <title>freqhole</title>
         <link rel="manifest" href="manifest.json" />
         <meta name="theme-color" content="#000000" />
+
         <style>
             body {
-                font-family: sans-serif;
-                background: #111;
-                color: #fff;
+                font-family: system-ui, sans-serif;
                 margin: 0;
-                padding: 1rem;
+                padding: 0;
+                color: white;
+                background: black;
+                min-height: 100vh;
             }
+
+            a {
+                color: white;
+            }
+            a:hover {
+                color: #f1f;
+            }
+
+            h1,
+            h2,
+            figure {
+                margin: 0;
+                overflow-wrap: break-word;
+                padding: 1em;
+                background: rgba(0, 0, 0, 0.3);
+            }
+
+            figure {
+                width: 300px;
+            }
+
             h1 {
-                font-size: 1.5rem;
+                font-size: 2em;
+                line-height: 2em;
+                padding: 1em 1em 0 1em;
             }
+
+            h2 {
+                font-size: 1em;
+                line-height: 1em;
+                padding: 0 0 1em 2em;
+            }
+
+            .flex {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100%;
+            }
+            @media (max-width: 501px) {
+                h1 {
+                    font-size: 1em;
+                }
+                h2 {
+                    font-size: 0.8em;
+                }
+            }
+
             ul {
                 list-style: none;
                 padding: 0;
@@ -89,9 +137,20 @@
                 const songlist = document.getElementById("server-song-list");
                 const li = document.createElement("li");
                 li.innerHTML = `
-              <strong>${song.title}</strong>
-              <button onclick="playSong('${song.id}', '${FREQHOLE_SERVER_ROUTES.get_song(song.id)}')">Play</button>
-              <button onclick="downloadSong('${song.id}', '${FREQHOLE_SERVER_ROUTES.get_song(song.id)}')">Download</button>
+                  <figure>
+                    <audio
+                      controls
+                      src="${FREQHOLE_SERVER_ROUTES.get_song(song.id)}"
+                    ></audio>
+                      <figcaption>
+                        <a
+                          href="${FREQHOLE_SERVER_ROUTES.get_song(song.id)}"
+                        >
+                          ${song.title}
+                        </a>
+                      </figcaption>
+                  </figure>
+              <button onclick="downloadSong('${song.id}', '${FREQHOLE_SERVER_ROUTES.get_song(song.id)}')">save</button>
             `;
                 songlist.appendChild(li);
             }
@@ -249,7 +308,7 @@
                 const res = await fetch(url);
                 const blob = await res.blob();
                 await saveSongBlob(id, blob);
-                alert(`Downloaded ${id}`);
+                console.log(`downloaded ${id}`);
             };
 
             window.stop = async () => {
@@ -306,7 +365,24 @@
                     );
             });
 
-            loadSongs();
+            // little script to play the next <audio> track when complete (ended)
+            function loadEndedCallbacks() {
+                const audioElz = document.querySelectorAll("audio");
+                audioElz.forEach(function (audioEl, idx) {
+                    if (idx < audioElz.length - 1) {
+                        audioEl.addEventListener("ended", function (e) {
+                            const nextEl = audioElz[idx + 1];
+                            if (nextEl) {
+                                nextEl.play();
+                            }
+                        });
+                    }
+                });
+            }
+
+            document.addEventListener("DOMContentLoaded", function (event) {
+                loadSongs().then(() => loadEndedCallbacks());
+            });
         </script>
     </body>
 </html>
