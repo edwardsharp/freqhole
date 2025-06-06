@@ -5,8 +5,10 @@ edition = "2021"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7", features = ["io"] }
 sled = "0.34.7"
 warp = "0.3"
+mime_guess = "2.0.5"
 
 [dependencies.shared]
 path = "../shared"

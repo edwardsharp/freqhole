@@ -29,6 +29,8 @@ then access songs:
 
 `curl http://localhost:3030/songs`
 
+also look at the static pwa build on `http://localhost:3030` ☺️
+
 ### wasm frontend pwa
 
 `cargo install wasm-pack` once

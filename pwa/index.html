@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>freqhole</title>
+        <link rel="manifest" href="manifest.json" />
+        <meta name="theme-color" content="#000000" />
+        <style>
+            body {
+                font-family: sans-serif;
+                background: #111;
+                color: #fff;
+                margin: 0;
+                padding: 1rem;
+            }
+            h1 {
+                font-size: 1.5rem;
+            }
+            ul {
+                list-style: none;
+                padding: 0;
+            }
+            li {
+                margin-bottom: 1rem;
+            }
+            button {
+                margin-left: 1rem;
+            }
+            #log {
+                margin-top: 2rem;
+                font-family: monospace;
+                font-size: 0.8rem;
+                color: #ccc;
+                white-space: pre-wrap;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>freqhole</h1>
+        <div id="log"></div>
+        <div id="controls">
+            <button onclick="stop()">stop</button>
+        </div>
+
+        <ul id="downloaded-song-list"></ul>
+        <hr />
+        <ul id="song-list"></ul>
+        <hr />
+        <ul id="server-song-list"></ul>
+        <label>
+            currently using about <output id="percent"> </output>% of the
+            estimated storage quota (<output id="quota"></output>).
+        </label>
+
+        <script type="module">
+            import init, {
+                save_sample_song,
+                get_all_songs,
+            } from "./pkg/pwa.js";
+
+            function render_downloaded_song(song) {
+                const { key } = song;
+                console.log("zomg render_song:", key);
+                const songlist = document.getElementById(
+                    "downloaded-song-list",
+                );
+                const li = document.createElement("li");
+                li.innerHTML = `
+            <strong>${key}</strong>
+            <button onclick="playSong('${key}')">Play</button>
+          `;
+                songlist.appendChild(li);
+            }
+
+            function render_song(song) {
+                console.log("zomg render_song:", song);
+                const songlist = document.getElementById("song-list");
+                const li = document.createElement("li");
+                li.innerHTML = `
+              <strong>${song.title}</strong>
+              <button onclick="playSong('${song.id}', '${FREQHOLE_SERVER_ROUTES.get_song(song.id)}')">Play</button>
+            `;
+                songlist.appendChild(li);
+            }
+
+            function render_server_song(song) {
+                // console.log("zomg render_server_song", song);
+                const songlist = document.getElementById("server-song-list");
+                const li = document.createElement("li");
+                li.innerHTML = `
+              <strong>${song.title}</strong>
+              <button onclick="playSong('${song.id}', '${FREQHOLE_SERVER_ROUTES.get_song(song.id)}')">Play</button>
+              <button onclick="downloadSong('${song.id}', '${FREQHOLE_SERVER_ROUTES.get_song(song.id)}')">Download</button>
+            `;
+                songlist.appendChild(li);
+            }
+
+            // document.getElementById("save").onclick = (e) => {
+            //     e.preventDefault();
+            //     const formData = new FormData(document.querySelector("form"));
+            //     const song = Object.fromEntries(formData.entries());
+            //     console.log("new song data:", song);
+            //     save_sample_song(song)
+            //         .then(() => {
+            //             render_song(song);
+            //         })
+            //         .catch((e) => alert("Error: " + e));
+            // };
+
+            // _ORGIN so, like, no trailing slashes here!
+            const FREQHOLE_SERVER_ORIGIN = "http://localhost:3030";
+            const FREQHOLE_SERVER_ROUTES = {
+                songs: `${FREQHOLE_SERVER_ORIGIN}/songs`,
+                get_song: (id) => `${FREQHOLE_SERVER_ORIGIN}/song/${id}`,
+            };
+
+            const list = document.getElementById("song-list");
+            const logDiv = document.getElementById("log");
+            const dbName = "AudioCache";
+            let appBooted = false;
+            let audio = new Audio();
+            let currentUrl = null;
+
+            // Utility: log errors to screen
+            function log(message) {
+                console.log(message);
+                logDiv.textContent += `\n${message}`;
+            }
+
+            window.addEventListener("error", (e) => {
+                log(`[Error] ${e.message} at ${e.filename}:${e.lineno}`);
+            });
+
+            window.addEventListener("unhandledrejection", (e) => {
+                log(`[Promise Error] ${e.reason}`);
+            });
+
+            setTimeout(() => {
+                if (!appBooted) {
+                    if (confirm("App may have failed to load. Reload?")) {
+                        location.reload(true);
+                        return;
+                    }
+                }
+                navigator?.storage?.estimate &&
+                    navigator.storage.estimate().then((estimate) => {
+                        document.getElementById("percent").value = (
+                            (estimate.usage / estimate.quota) *
+                            100
+                        ).toFixed(2);
+                        document.getElementById("quota").value =
+                            `${(estimate.quota / 1024 / 1024).toFixed(2)}MB`;
+                    });
+            }, 2000);
+
+            // try to persist storage if supported
+            if (navigator.storage && navigator.storage.persist) {
+                navigator.storage
+                    .persist()
+                    .then((granted) => {
+                        if (granted) {
+                            log("🔐 Storage persistence granted.");
+                        } else {
+                            log("⚠️ Storage persistence not granted.");
+                        }
+                    })
+                    .catch((err) => log(`[Persist Error] ${err}`));
+            } else {
+                log("❌ StorageManager.persist() not supported.");
+            }
+
+            // Fetch song list
+            async function loadSongs() {
+                const res = await fetch(FREQHOLE_SERVER_ROUTES.songs);
+                const songs = await res.json();
+                songs.forEach(render_server_song);
+                appBooted = true;
+            }
+
+            // IndexedDB setup
+            function openDB() {
+                return new Promise((resolve, reject) => {
+                    const req = indexedDB.open(dbName, 1);
+                    req.onupgradeneeded = (e) => {
+                        e.target.result.createObjectStore("songs");
+                    };
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = () => reject(req.error);
+                });
+            }
+
+            async function getAllSongBlobs() {
+                const db = await openDB();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction("songs", "readonly");
+                    const store = tx.objectStore("songs");
+
+                    const pairs = [];
+
+                    store.openCursor().onsuccess = function (event) {
+                        const cursor = event.target.result;
+                        if (cursor) {
+                            pairs.push({
+                                key: cursor.key,
+                                value: cursor.value,
+                            });
+                            cursor.continue();
+                        } else {
+                            // console.log(pairs);
+                            console.log(
+                                "downloaded songs event:",
+                                event,
+                                " pairs:",
+                                pairs,
+                            );
+                            return resolve(pairs);
+                        }
+                    };
+
+                    // const req = store.getAll();
+
+                    // req.onsuccess = (arg) => {
+                    //     console.log("downloaded songs arg:", arg, " req:", req);
+                    //     return resolve(req.result);
+                    // };
+                    // req.onerror = () => reject(req.error);
+                });
+            }
+
+            async function getSongBlob(id) {
+                const db = await openDB();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction("songs", "readonly");
+                    const store = tx.objectStore("songs");
+                    const req = store.get(id);
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = () => reject(req.error);
+                });
+            }
+
+            async function saveSongBlob(id, blob) {
+                const db = await openDB();
+                const tx = db.transaction("songs", "readwrite");
+                tx.objectStore("songs").put(blob, id);
+            }
+
+            window.downloadSong = async (id, url) => {
+                const res = await fetch(url);
+                const blob = await res.blob();
+                await saveSongBlob(id, blob);
+                alert(`Downloaded ${id}`);
+            };
+
+            window.stop = async () => {
+                audio && !audio.paused && audio.pause();
+            };
+            window.playSong = async (id, url) => {
+                let blob = await getSongBlob(id);
+                if (!blob) {
+                    const res = await fetch(url);
+                    blob = await res.blob();
+                }
+                if (!audio.paused) {
+                    audio.pause();
+                }
+
+                // clean up previous object URL
+                if (currentUrl) {
+                    URL.revokeObjectURL(currentUrl);
+                }
+
+                // set up new audio
+                currentUrl = URL.createObjectURL(blob);
+                audio.src = currentUrl;
+                audio.play();
+            };
+
+            // Register service worker
+            if ("serviceWorker" in navigator) {
+                navigator.serviceWorker
+                    .register("sw.js")
+                    .then((reg) => {
+                        console.log("SW registered");
+                    })
+                    .catch((err) => log(`[SW Error] ${err}`));
+            }
+
+            init().then(() => {
+                get_all_songs()
+                    .then((songs) => {
+                        console.log("zomg songs:", songs);
+                        songs.forEach(render_song);
+                    })
+                    .catch((e) =>
+                        console.warn("onoz get_all_songs caught error:", e),
+                    );
+
+                getAllSongBlobs()
+                    .then((songs) => {
+                        console.log("zomg downloaded songs:", songs);
+                        songs.forEach(render_downloaded_song);
+                    })
+                    .catch((e) =>
+                        console.warn("onoz getAllSongBlobs caught error:", e),
+                    );
+            });
+
+            loadSongs();
+        </script>
+    </body>
+</html>

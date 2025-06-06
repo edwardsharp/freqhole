@@ -15,7 +15,6 @@ pub trait Storage {
     async fn new_with_path(path: &str) -> Result<Self, Box<dyn Error>>
     where
         Self: Sized;
-
     async fn store_song(&self, song: Song) -> Result<(), Box<dyn Error>>;
     async fn get_all_songs(&self) -> Result<Vec<Song>, Box<dyn Error>>;
 }
