@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Freqhole Playlist UI</title>
+        <style>
+            * {
+                box-sizing: border-box;
+            }
+            body {
+                margin: 0;
+                display: flex;
+                font-family: sans-serif;
+            }
+            #sidebar {
+                width: 200px;
+                border-right: 1px solid #ccc;
+                padding: 1rem;
+                background: #f8f8f8;
+                position: sticky;
+                top: 0;
+                height: 100vh;
+            }
+            #main {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+            }
+            #controls {
+                position: sticky;
+                top: 0;
+                background: #eee;
+                padding: 0.5rem;
+                display: flex;
+                gap: 0.5rem;
+                align-items: center;
+            }
+            #song-list {
+                flex: 1;
+                overflow-y: auto;
+            }
+            .song-row {
+                padding: 0.5rem;
+                border-bottom: 1px solid #ddd;
+                cursor: pointer;
+            }
+            .song-row.selected {
+                background: #d0f0ff;
+            }
+            button.sort {
+                font-size: 0.9rem;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="sidebar">
+            <h3>Playlists</h3>
+            <ul id="playlist-nav">
+                <li><a href="#" data-filter="all">All Songs</a></li>
+            </ul>
+        </div>
+        <div id="main">
+            <div id="controls">
+                <input type="text" id="search" placeholder="Search..." />
+                <button class="sort" data-key="title">Sort by Title</button>
+                <button class="sort" data-key="artist">Sort by Artist</button>
+                <button class="sort" data-key="album">Sort by Album</button>
+                <button class="sort" data-key="dateAdded">Sort by Date</button>
+                <button id="add-to-playlist" style="display: none">
+                    Add to Playlist
+                </button>
+            </div>
+            <div id="song-list"></div>
+        </div>
+
+        <script type="module">
+            let songs = [];
+            await fetch("./seed_songs.json")
+                .then((r) => r.json())
+                .then((s) => (songs = s));
+
+            const dbName = "freqhole";
+            const storeName = "songs";
+            let db,
+                sortKey = "title",
+                query = "",
+                selected = new Set(),
+                playlistSongs = [];
+
+            async function initDB() {
+                return new Promise((resolve, reject) => {
+                    const req = indexedDB.open(dbName, 1);
+                    req.onupgradeneeded = (e) => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains(storeName)) {
+                            const store = db.createObjectStore(storeName, {
+                                keyPath: "id",
+                            });
+                            store.createIndex("title", "title");
+                            store.createIndex("artist", "artist");
+                            store.createIndex("album", "album");
+                            store.createIndex("dateAdded", "dateAdded");
+                        }
+                    };
+                    req.onsuccess = async (e) => {
+                        db = e.target.result;
+                        const tx = db.transaction(storeName, "readonly");
+                        const countReq = tx.objectStore(storeName).count();
+                        countReq.onsuccess = () => {
+                            if (countReq.result === 0) {
+                                const write = db
+                                    .transaction(storeName, "readwrite")
+                                    .objectStore(storeName);
+                                songs.forEach((song) => write.add(song));
+                            }
+                            resolve();
+                        };
+                    };
+                    req.onerror = (e) => reject(e);
+                });
+            }
+
+            async function loadSongs(filter = "all") {
+                const tx = db.transaction(storeName);
+                const store = tx.objectStore(storeName);
+                const request = store.openCursor();
+
+                const results = [];
+                return new Promise((resolve) => {
+                    request.onsuccess = (e) => {
+                        const cursor = e.target.result;
+                        if (cursor) {
+                            const s = cursor.value;
+                            if (
+                                filter === "all" ||
+                                playlistSongs.includes(s.id)
+                            ) {
+                                if (
+                                    !query ||
+                                    Object.values(s).some((val) =>
+                                        val.toLowerCase().includes(query),
+                                    )
+                                ) {
+                                    results.push(s);
+                                }
+                            }
+                            cursor.continue();
+                        } else {
+                            results.sort((a, b) =>
+                                (a[sortKey] || "").localeCompare(
+                                    b[sortKey] || "",
+                                ),
+                            );
+                            renderSongs(results);
+                            resolve();
+                        }
+                    };
+                });
+            }
+
+            function renderSongs(songs) {
+                const list = document.getElementById("song-list");
+                list.innerHTML = "";
+                songs.forEach((song) => {
+                    const div = document.createElement("div");
+                    div.className = "song-row";
+                    if (selected.has(song.id)) div.classList.add("selected");
+                    div.textContent = `${song.title} — ${song.artist} (${song.album}) [${new Date(song.dateAdded).toLocaleDateString()}]`;
+                    div.onclick = () => {
+                        if (selected.has(song.id)) {
+                            selected.delete(song.id);
+                            div.classList.remove("selected");
+                        } else {
+                            selected.add(song.id);
+                            div.classList.add("selected");
+                        }
+                        document.getElementById(
+                            "add-to-playlist",
+                        ).style.display =
+                            selected.size > 0 ? "inline-block" : "none";
+                    };
+                    list.appendChild(div);
+                });
+            }
+
+            document.getElementById("search").oninput = (e) => {
+                query = e.target.value.toLowerCase();
+                loadSongs(currentFilter);
+            };
+
+            document.querySelectorAll("button.sort").forEach((btn) => {
+                btn.onclick = () => {
+                    sortKey = btn.dataset.key;
+                    loadSongs(currentFilter);
+                };
+            });
+
+            document.getElementById("add-to-playlist").onclick = () => {
+                const newId = `playlist-${Date.now()}`;
+                const ul = document.getElementById("playlist-nav");
+                const li = document.createElement("li");
+                li.innerHTML = `<a href="#" data-filter="${newId}">${newId}</a>`;
+                ul.appendChild(li);
+                playlistSongs.push(...selected);
+                selected.clear();
+                loadSongs(currentFilter);
+                document.getElementById("add-to-playlist").style.display =
+                    "none";
+            };
+
+            let currentFilter = "all";
+            document.getElementById("playlist-nav").onclick = (e) => {
+                if (e.target.tagName === "A") {
+                    currentFilter = e.target.dataset.filter;
+                    e.preventDefault();
+                    loadSongs(currentFilter);
+                }
+            };
+
+            initDB().then(() => loadSongs());
+        </script>
+    </body>
+</html>

@@ -1,0 +1,138 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>hyperapp example</title>
+    </head>
+    <body>
+        <script type="module">
+            import { h, app } from "https://esm.sh/hyperapp";
+
+            // IndexedDB config
+            const DB_NAME = "freqhole";
+            const STORE_NAME = "songs";
+            const DB_VERSION = 1;
+
+            // Initialize DB and create store
+            function openDB() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+                        if (!db.objectStoreNames.contains(STORE_NAME)) {
+                            const store = db.createObjectStore(STORE_NAME, {
+                                keyPath: "id",
+                            });
+                            store.createIndex("title", "title", {
+                                unique: false,
+                            });
+                        }
+                    };
+
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            }
+
+            // Load a page of songs using a cursor
+            function loadSongs(db, dispatch, offset = 0, limit = 10) {
+                const tx = db.transaction(STORE_NAME, "readonly");
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.openCursor();
+                const results = [];
+
+                let skipped = 0;
+                req.onsuccess = (e) => {
+                    const cursor = e.target.result;
+                    if (cursor) {
+                        if (skipped < offset) {
+                            skipped++;
+                            cursor.continue();
+                        } else if (results.length < limit) {
+                            results.push(cursor.value);
+                            cursor.continue();
+                        } else {
+                            dispatch({ type: "setSongs", payload: results });
+                        }
+                    } else {
+                        dispatch({ type: "setSongs", payload: results });
+                    }
+                };
+            }
+
+            const initialState = {
+                songs: [],
+                offset: 0,
+                limit: 10,
+            };
+
+            const actions = {
+                setSongs: (state, { payload }) => ({
+                    ...state,
+                    songs: payload,
+                }),
+
+                setSongsFromDB: () => (state, actions) => {
+                    openDB().then((db) => {
+                        loadSongs(db, actions, state.offset, state.limit);
+                    });
+                },
+
+                nextPage: () => (state, actions) => {
+                    const nextOffset = state.offset + state.limit;
+                    actions.setSongsFromDB();
+                    return { ...state, offset: nextOffset };
+                },
+
+                prevPage: () => (state, actions) => {
+                    const prevOffset = Math.max(0, state.offset - state.limit);
+                    actions.setSongsFromDB();
+                    return { ...state, offset: prevOffset };
+                },
+            };
+
+            const view = (state, actions) =>
+                h("main", {}, [
+                    h("h1", {}, "Freqhole Songs"),
+
+                    h(
+                        "ul",
+                        {},
+                        state.songs.map((song) =>
+                            h("li", {}, [
+                                h("strong", {}, song.title),
+                                " — ",
+                                h("code", {}, song.path || "(no path)"),
+                            ]),
+                        ),
+                    ),
+
+                    h("div", { style: "margin-top: 1rem;" }, [
+                        h(
+                            "button",
+                            {
+                                onclick: actions.prevPage,
+                                disabled: state.offset === 0,
+                            },
+                            "Prev",
+                        ),
+                        h(
+                            "span",
+                            { style: "margin: 0 1rem;" },
+                            `Page ${state.offset / state.limit + 1}`,
+                        ),
+                        h("button", { onclick: actions.nextPage }, "Next"),
+                    ]),
+                ]);
+
+            app({
+                init: (state) => [state, (actions) => actions.setSongsFromDB()],
+                view,
+                node: document.body,
+                state: initialState,
+                actions,
+            });
+        </script>
+    </body>
+</html>
