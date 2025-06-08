@@ -1,14 +1,20 @@
 mod file_walker;
+mod html_packer;
 
 use serde_json::{self, Value};
 use shared::rust_store::RustStorage;
 use shared::{Song, Storage};
+use std::io::{self, BufRead, BufReader};
 use std::path::{Path, PathBuf};
 
 use crate::file_walker::SongFile;
 
+// #TOOD: avoid the dotdot paths and just setup in the home dir
+// like ~/.freqhole/
 pub const CHECKPOINT_FILE: &str = "../freqhole-scan-checkpoint.json";
 pub const OUTPUT_FILE: &str = "../freqhole-scan-files.json";
+pub const PACKER_FILE: &str = "../freqhole-packer.txt";
+pub const PACKER_OUT: &str = "../freqhole-packer.html";
 
 fn load_songs_from_file<P: AsRef<Path>>(path: P) -> anyhow::Result<Vec<SongFile>> {
     let file_content = std::fs::read_to_string(path)?;
@@ -16,11 +22,67 @@ fn load_songs_from_file<P: AsRef<Path>>(path: P) -> anyhow::Result<Vec<SongFile>
     Ok(songs)
 }
 
+fn packer(file_list: &str, output_html: &str) -> anyhow::Result<()> {
+    let file = std::fs::File::open(file_list)?;
+    let reader = BufReader::new(file);
+
+    // Collect non-empty, trimmed paths into a Vec<PathBuf>
+    let paths: Vec<PathBuf> = reader
+        .lines()
+        .filter_map(Result::ok)
+        .map(|line| line.trim().to_string())
+        .filter(|line| !line.is_empty())
+        .map(PathBuf::from)
+        .collect();
+
+    if paths.is_empty() {
+        anyhow::bail!("No valid paths found in the file.");
+    }
+
+    html_packer::html_packer(&paths, output_html)
+}
+
+// fn packer<P: AsRef<Path>>(path: P) -> io::Result<()> {
+//     let path = path.as_ref();
+
+//     // Check if file exists
+//     if !path.exists() {
+//         eprintln!("Error: file does not exist: {}", path.display());
+//         return Err(io::Error::new(io::ErrorKind::NotFound, "File not found"));
+//     }
+
+//     // Check if file is empty
+//     let metadata = std::fs::metadata(path)?;
+//     if metadata.len() == 0 {
+//         eprintln!("Warning: file is empty: {}", path.display());
+//         return Ok(());
+//     }
+
+//     // Open and read the file line-by-line
+//     let file = std::fs::File::open(path)?;
+//     let reader = std::io::BufReader::new(file);
+
+//     // let linez = reader.lines().enumerate();
+//     for (index, line_result) in reader.lines().enumerate() {
+//         let line = line_result?; // propagate error
+//         println!("Line {}: {}", index + 1, line);
+//     }
+
+//     // let file_content = std::fs::read_to_string(path)?;
+//     let filez = reader.lines();
+//     let files = vec![filez];
+//     html_packer::html_packer(&files, "output.html");
+//     println!("Done! Open output.html in your browser.");
+
+//     Ok(())
+// }
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut scan = false;
     let mut load_idb = false;
     let mut damon = false;
+    let mut p = false;
     let mut dir: Option<String> = None;
 
     let mut args = std::env::args().skip(1); // skip the binary name
@@ -30,12 +92,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "-s" => scan = true,
             "-d" => damon = true,
             "-idb" => load_idb = true,
+            "-p" => p = true,
             _ if dir.is_none() => dir = Some(arg),
             _ => {
                 eprintln!("onoz, dunno argument: {}", arg);
                 std::process::exit(1);
             }
         }
+    }
+
+    if p {
+        packer(PACKER_FILE, PACKER_OUT)?;
+        println!("done!");
+        // Ok(())
     }
 
     if scan || damon {

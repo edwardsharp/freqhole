@@ -18,3 +18,5 @@ Cargo.lock
 freqhole-scan-files.json
 freqhole-scan-files.txt
 pwa/examples/seed_songs.json
+freqhole-packer.html
+freqhole-packer.txt
