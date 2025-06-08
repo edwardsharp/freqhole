@@ -13,37 +13,16 @@ export function Player() {
   let seekbarRef: HTMLDivElement | undefined;
 
   const togglePlaying = () => {
-    const setPaused = () => {
-      setPlayerState((prev) => ({
-        ...prev,
-        playing: "paused",
-      }));
-      audio().pause();
-    };
-    const setPlaying = () => {
-      setPlayerState((prev) => ({
-        ...prev,
-        playing: "playing",
-      }));
-      audio().play();
-    };
-    const restart = () => {
-      setPlayerState((prev) => ({
-        ...prev,
-        playing: "playing",
-      }));
-      audio().fastSeek(0);
-      audio().play();
-    };
     switch (playerState().playing) {
       case "playing":
-        setPaused();
+        audio().pause();
         break;
       case "done":
-        restart();
+        audio().fastSeek(0);
+        audio().play();
         break;
       case "paused":
-        setPlaying();
+        audio().play();
         break;
     }
   };

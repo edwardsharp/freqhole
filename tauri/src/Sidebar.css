@@ -42,6 +42,10 @@
     border-left: thick solid magenta;
 }
 
+#playlist-nav li:hover img {
+    filter: invert();
+}
+
 #playlist-nav li {
     padding: 0 1rem;
 }

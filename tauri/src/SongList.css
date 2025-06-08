@@ -1,6 +1,5 @@
 #song-list {
     border-top: 1px solid #eeddee;
-    /* border-right: 1px solid #ddd; */
 }
 .song-row {
     padding: 0.5rem;
@@ -16,8 +15,19 @@
     color: magenta;
     cursor: pointer;
 }
+
+.start:hover .hover,
+.start .normal {
+    display: inline;
+}
+.start:hover .normal,
+.start .hover {
+    display: none;
+}
+
 .song-row.selected {
     color: magenta;
+    border-color: magenta;
 }
 .song-row:active {
     opacity: 0.6;
@@ -37,6 +47,9 @@
     height: 2rem;
     width: 2rem;
     align-content: center;
+}
+.end:hover img {
+    filter: invert();
 }
 .end div {
     text-align: center;

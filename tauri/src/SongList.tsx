@@ -1,6 +1,7 @@
 import { createSignal, For, Show, type Component } from "solid-js";
 
 import play from "./assets/play.svg";
+import pause from "./assets/pause.svg";
 import nohole from "./assets/nohole.svg";
 import hole from "./assets/hole.svg";
 
@@ -54,6 +55,24 @@ const SongList: Component = () => {
     setSelected(new Set());
   }
 
+  function togglePlaying(song: Song) {
+    if (song.id && playerState()?.song?.id !== song.id) {
+      playSong(song);
+    }
+
+    switch (playerState().playing) {
+      case "playing":
+        audio().pause();
+        break;
+      case "done":
+        audio().fastSeek(0);
+        audio().play();
+        break;
+      case "paused":
+        audio().play();
+        break;
+    }
+  }
   function rowClick(song: Song, index: number, range: boolean, multi: boolean) {
     const lsi = lastSelectedIndex();
     if (range && lsi !== null) {
@@ -103,12 +122,33 @@ const SongList: Component = () => {
                 onDblClick={() => playSong(song)}
                 tabindex="0"
               >
-                <div class="start">
-                  {playerState()?.song?.id === song.id ? (
-                    <img src={play} class="playing" alt="playing" />
-                  ) : (
-                    formatIdx(idx())
-                  )}
+                <div
+                  class="start"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    togglePlaying(song);
+                  }}
+                >
+                  <span class="normal">
+                    {playerState()?.song?.id === song.id ? (
+                      playerState()?.playing === "paused" ? (
+                        <img src={play} class="playing" alt="playing" />
+                      ) : (
+                        <img src={pause} class="playing" alt="pause" />
+                      )
+                    ) : (
+                      formatIdx(idx())
+                    )}
+                  </span>
+                  <span class="hover">
+                    {playerState()?.song?.id === song.id &&
+                    playerState()?.playing === "playing" ? (
+                      <img src={pause} class="playing" alt="pause" />
+                    ) : (
+                      <img src={play} class="playing" alt="playing" />
+                    )}
+                  </span>
+                  <span></span>
                 </div>
                 <div class="grow">{renderSongTitleOrPath(song)}</div>
                 <div
@@ -118,7 +158,7 @@ const SongList: Component = () => {
                     e.stopPropagation();
                     heartSong(song);
                   }}
-                  title="add to yr favz!"
+                  title="toggle fav song"
                   tabindex="0"
                 >
                   <div>
