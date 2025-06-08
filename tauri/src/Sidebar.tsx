@@ -1,9 +1,10 @@
 import { useSongs } from "./context";
 import { Player } from "./Player";
+import nohole from "./assets/nohole.svg";
 import "./Sidebar.css";
 
 export function SideBar() {
-  const { setFilter, setSearch } = useSongs();
+  const { filter, setFilter, setSearch } = useSongs();
 
   return (
     <div id="sidebar">
@@ -17,8 +18,18 @@ export function SideBar() {
       />
 
       <ul id="playlist-nav">
-        <li onClick={() => setFilter("all")}>everything</li>
-        <li onClick={() => setFilter("favorites")}>♥ heartz</li>
+        <li
+          onClick={() => setFilter("all")}
+          class={filter() === "all" ? "active" : ""}
+        >
+          everything
+        </li>
+        <li
+          onClick={() => setFilter("favorites")}
+          class={filter() === "favorites" ? "active" : ""}
+        >
+          heartz <img src={nohole} alt="heart" />
+        </li>
       </ul>
 
       <div class="grow">&nbsp;</div>

@@ -4,20 +4,29 @@
     padding: 0 0.5rem;
 }
 
-#playpause {
+#buttonz {
     display: flex;
     align-self: center;
-    justify-content: center;
+    justify-content: space-evenly;
+    align-items: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    height: 1.5rem;
+    height: 2.5rem;
+    padding: 2px;
+    margin: 0 2rem;
 }
 
-#playpause:hover {
-    /* background: #eeddee; */
+#buttonz div img:hover {
+    background: #eeddee;
     color: magenta;
     cursor: pointer;
+    border-radius: 100px;
+}
+
+#buttonz img {
+    line-height: 2rem;
+    height: 2rem;
 }
 
 #seekbar-container {

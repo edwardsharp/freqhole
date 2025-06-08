@@ -47,6 +47,7 @@ button {
     background-color: #ffffff;
     transition: border-color 0.25s;
     box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
+    border-left-width: thick;
 }
 
 button {
@@ -55,7 +56,7 @@ button {
 
 input:hover,
 input:focus {
-    border-bottom-color: magenta;
+    border-left-color: magenta;
     border-radius: 0;
 }
 button:hover {

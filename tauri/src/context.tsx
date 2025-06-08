@@ -11,7 +11,7 @@ import { getFavoriteSongs, querySongs, Song } from "./db";
 import { createArrayLiveQuery } from "./create-live-query";
 
 export interface PlayerState {
-  playing: "loading" | "playing" | "paused" | "idle";
+  playing: "loading" | "playing" | "paused" | "done" | "idle";
   current_url: string | null;
   song: Song | null;
   current_time: number;
@@ -112,19 +112,3 @@ export function songTitleOrPath(song: Song | null | undefined) {
     `${song.album && "["} ${song.album} ${song.album && "]"}`,
   ];
 }
-
-// export function songTitleOrPathElem(song: Song | null | undefined) {
-//   if (!song) return;
-//   return songTitleOrPath(song).map((s, i) => {
-//     if ((i = 0)) return <strong>{s}</strong>;
-//     return s;
-//   });
-//   // if (!song.title && !song.artist && !song.album)
-//   //   return <strong>{song.path.replace(`${song.base_path}/`, "")}</strong>;
-//   // return (
-//   //   <>
-//   //     <strong>{song.title.replace(`${song.base_path}/`, "")}</strong>{" "}
-//   //     {song.artist && `- ${song.artist}`} {song.album && `[${song.album}]`}
-//   //   </>
-//   // );
-// }

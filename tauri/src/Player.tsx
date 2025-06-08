@@ -2,6 +2,10 @@ import { songTitleOrPath, useSongs } from "./context";
 import { Song } from "./db";
 import "./Player.css";
 import { formatTime } from "./usePlayer";
+import play from "./assets/play.svg";
+import pause from "./assets/pause.svg";
+// import prev from "./assets/prev.svg";
+// import next from "./assets/next.svg";
 
 export function Player() {
   const { playerState, setPlayerState, audio } = useSongs();
@@ -23,9 +27,20 @@ export function Player() {
       }));
       audio().play();
     };
+    const restart = () => {
+      setPlayerState((prev) => ({
+        ...prev,
+        playing: "playing",
+      }));
+      audio().fastSeek(0);
+      audio().play();
+    };
     switch (playerState().playing) {
       case "playing":
         setPaused();
+        break;
+      case "done":
+        restart();
         break;
       case "paused":
         setPlaying();
@@ -47,17 +62,15 @@ export function Player() {
     const duration = playerState().song?.seconds;
     const current_time = playerState().current_time;
     if (duration === undefined) return;
-    return (current_time / duration) * 100;
+    return Math.min((current_time / duration) * 100, 100);
   }
 
-  function hoverTextForPlaying() {
+  function playPauseBtn() {
     switch (playerState().playing) {
       case "playing":
-        return "pause";
-      case "paused":
-        return "play";
+        return <img src={pause} alt="pause" title="pause" />;
       default:
-        return "";
+        return <img src={play} alt="play" title="play" />;
     }
   }
 
@@ -74,10 +87,15 @@ export function Player() {
 
   return (
     <div id="player">
-      <div id="playpause" onClick={() => togglePlaying()}>
-        {hoverTextForPlaying()}
-      </div>
-      {!!playerState().current_time && (
+      {!!playerState().current_url && (
+        <div id="buttonz">
+          {/* <img src={prev} alt="prev" title="prev" id="prev" /> */}
+          <div onClick={() => togglePlaying()}>{playPauseBtn()}</div>
+
+          {/* <img src={next} alt="next" title="next" id="next" /> */}
+        </div>
+      )}
+      {!!playerState().current_url && (
         <div id="seekbar-container" class="grow">
           <div>{formatTime(playerState().current_time)}</div>
           <div class="seekbar" ref={seekbarRef} onClick={handleSeekClick}>
@@ -87,7 +105,10 @@ export function Player() {
           <div>{formatTime(playerState().song?.seconds)}</div>
         </div>
       )}
-      <div id="song-title" title={songTitleOrPath(playerState().song)?.join()}>
+      <div
+        id="song-title"
+        title={songTitleOrPath(playerState().song)?.join("")}
+      >
         {renderSongTitleOrPath(playerState().song)}
       </div>
     </div>

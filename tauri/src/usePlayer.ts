@@ -59,6 +59,14 @@ export function loadSong(
     }));
   };
 
+  const setDone = (e: any) => {
+    console.log("zomg done e:", e);
+    setPlayerState((prev) => ({
+      ...prev,
+      playing: "done",
+    }));
+  };
+
   const setCurrentTime = () =>
     setPlayerState((prev) => ({
       ...prev,
@@ -67,9 +75,9 @@ export function loadSong(
 
   ["play", "playing"].forEach((t) => audio().addEventListener(t, setPlaying));
   audio().addEventListener("pause", setPaused);
-  ["abort", "ended", "error"].forEach((t) =>
-    audio().addEventListener(t, setIdle),
-  );
+  ["ended"].forEach((t) => audio().addEventListener(t, setDone));
+
+  ["abort", "error"].forEach((t) => audio().addEventListener(t, setIdle));
   audio().addEventListener("timeupdate", setCurrentTime);
 
   // ["timeupdate"]

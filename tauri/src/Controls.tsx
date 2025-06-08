@@ -1,8 +1,12 @@
 import { useSongs } from "./context";
 import "./Controls.css";
 
+// 🤷 figure out what to do here 🤔
+const CONTROLS_VISIBLE = false;
 export function Controls() {
   const { setPage, page, pageSize, count } = useSongs();
+
+  if (!CONTROLS_VISIBLE) return;
 
   return (
     <div id="controls">
