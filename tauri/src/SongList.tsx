@@ -7,18 +7,25 @@ import hole from "./assets/hole.svg";
 
 import { songTitleOrPath, useSongs } from "./context";
 import { loadSong, formatTime } from "./usePlayer";
-import { toggleFavoriteSong, Song } from "./db";
+import { toggleFavoriteSong, Song, addToNewPlaylist } from "./db";
 
 import "./SongList.css";
+import { useFlyoutMenu } from "./FlyoutMenuProvider";
 
 const SongList: Component = () => {
-  const { songs, setPlayerState, audio, playerState, favorites } = useSongs();
+  const {
+    songs,
+    setPlayerState,
+    audio,
+    playerState,
+    favorites,
+    selected,
+    setSelected,
+  } = useSongs();
 
   const [lastSelectedIndex, setLastSelectedIndex] = createSignal<number | null>(
     null,
   );
-  // const selected = new Set();
-  const [selected, setSelected] = createSignal(new Set());
 
   function isHeart(song: Song) {
     return favorites?.some((s) => s.id === song.id);
@@ -42,17 +49,17 @@ const SongList: Component = () => {
     }
   }
   function add(id: string | number) {
-    setSelected(new Set([...selected(), id]));
+    setSelected(new Set([...selected(), `${id}`]));
   }
   function del(id: string | number) {
     setSelected(new Set([...selected()].filter((i) => i !== id)));
   }
   function has(id: string | number) {
-    return selected().has(id);
+    return selected().has(`${id}`);
     //[...selected()].filter((i) => i !== id);
   }
   function clear() {
-    setSelected(new Set());
+    setSelected(new Set<string>());
   }
 
   function togglePlaying(song: Song) {
@@ -102,11 +109,25 @@ const SongList: Component = () => {
     const [title, ...rest] = songTitleOrPath(song) || [];
     return (
       <>
-        <strong>{title}</strong>
-        {rest}
+        <strong>{title}</strong> {rest}
       </>
     );
   }
+
+  const menu = useFlyoutMenu();
+
+  const contextMenu = (song: Song, x: number, y: number) => {
+    console.log("zomg contextMenu!!", { x, y });
+    add(song.id);
+    menu.open({ x, y }, [
+      {
+        label: "add to new playlist",
+        onClick: () =>
+          addToNewPlaylist([...selected()], `playlist-${Date.now()}`),
+      },
+      // { label: "delete", onClick: () => console.log("Delete", song.title) },
+    ]);
+  };
 
   return (
     <>
@@ -120,6 +141,11 @@ const SongList: Component = () => {
                   rowClick(song, idx(), e.metaKey || e.ctrlKey, e.shiftKey)
                 }
                 onDblClick={() => playSong(song)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  contextMenu(song, e.clientX, e.clientY);
+                }}
                 tabindex="0"
               >
                 <div
@@ -152,7 +178,7 @@ const SongList: Component = () => {
                 </div>
                 <div class="grow">{renderSongTitleOrPath(song)}</div>
                 <div
-                  class="end"
+                  class="fav"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -161,14 +187,24 @@ const SongList: Component = () => {
                   title="toggle fav song"
                   tabindex="0"
                 >
-                  <div>
-                    {isHeart(song) ? (
-                      <img src={nohole} alt="heart" />
-                    ) : (
-                      <img src={hole} alt="hole" />
-                    )}
-                  </div>
-                  <div>{formatTime(song.seconds)}</div>
+                  {isHeart(song) ? (
+                    <img src={nohole} alt="heart" />
+                  ) : (
+                    <img src={hole} alt="hole" />
+                  )}
+                </div>
+                <div class="time">{formatTime(song.seconds)}</div>
+                <div
+                  class="menu"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    contextMenu(song, e.clientX, e.clientY);
+                  }}
+                  title="optionz menu"
+                >
+                  <span class="normal">&nbsp;</span>
+                  <span class="hover">•••</span>
                 </div>
               </div>
             )}

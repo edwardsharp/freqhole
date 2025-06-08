@@ -34,6 +34,7 @@ interface QueryOptions {
   sortKey: keyof Song;
   offset: number;
   limit: number;
+  playlist_id?: string | null;
 }
 
 const db = new Dexie("freqhole") as Dexie & {
@@ -44,15 +45,31 @@ const db = new Dexie("freqhole") as Dexie & {
 };
 
 // Schema declaration:
-db.version(4).stores({
+db.version(5).stores({
   songs: "id, title, artist, album, date_added, seconds, base_path",
   favorites: "++id, song_id",
   playlists: "++id, name",
-  playlistSongs: "[playlistId+songId]",
+  playlist_songs: "[playlistId+songId]",
 });
 
 export type { Song };
 export { db };
+
+export async function addToNewPlaylist(song_ids: string[], name: string) {
+  const playlist_id = await db.playlists.add({ name });
+  await Promise.all(
+    song_ids.map((sid) =>
+      db.playlist_songs
+        .put({
+          id: `${playlist_id}${sid}`, // hmm. :/
+          playlistId: `${playlist_id}`,
+          songId: `${sid}`,
+          sortOrder: 0,
+        })
+        .catch((e) => console.warn("playlist_songs.put error:", e)),
+    ),
+  );
+}
 
 export async function toggleFavoriteSong(song_id: string) {
   const is_fav = await db.favorites.get({ song_id });
@@ -60,6 +77,10 @@ export async function toggleFavoriteSong(song_id: string) {
     return await db.favorites.delete(is_fav.id);
   }
   return await db.favorites.add({ song_id });
+}
+
+export async function getPlaylists() {
+  return db.playlists.toArray();
 }
 
 export async function getFavoriteSongs() {
@@ -71,10 +92,20 @@ export async function getFavoriteSongs() {
 
 export async function querySongs(options: QueryOptions): Promise<Song[]> {
   console.log("querySongs options:", options);
-  if (options.filter === "favorites") return await getFavoriteSongs();
+  // #todo: deal with search query of fav songz
+  let favz: Song[] | undefined;
+  if (options.filter === "favorites") {
+    favz = await getFavoriteSongs();
+  }
 
   const matchSong = (song: Song) => {
-    const matchesFilter = options.filter === "all";
+    const isFavz = options.filter === "favorites";
+
+    // so if favz filter andand this isn't in the favz,
+    // bail before query check.
+    if (isFavz && favz?.every((f) => f.id !== song.id)) {
+      return false;
+    }
 
     const matchesSearch =
       !options.search ||
@@ -84,17 +115,28 @@ export async function querySongs(options: QueryOptions): Promise<Song[]> {
           v.toLowerCase().includes(options.search.toLowerCase()),
       );
 
-    console.log("zomg does match:", matchesFilter && matchesSearch);
-    return matchesFilter && matchesSearch;
+    // console.log("zomg does match:", matchesFilter && matchesSearch);
+    return matchesSearch;
   };
 
-  // const sortFn = (a, b) =>
-  //   `${a[options.sortKey] ?? ""}`.localeCompare(`${b[options.sortKey] ?? ""}`);
+  let playlist_song_ids: string[] = [];
+  if (options.playlist_id) {
+    playlist_song_ids = (await db.playlist_songs.toArray())?.map(
+      (ps) => ps.songId,
+    );
+  }
 
-  options.offset + options.limit;
+  const playlist = (song: Song) => {
+    if (playlist_song_ids && playlist_song_ids.length) {
+      return playlist_song_ids.includes(`${song.id}`);
+    }
+    return true;
+  };
+
   const songs = await db.songs
     .orderBy(options.sortKey)
     .filter(matchSong)
+    .filter(playlist)
     .offset(options.offset)
     .limit(options.limit)
     .toArray();

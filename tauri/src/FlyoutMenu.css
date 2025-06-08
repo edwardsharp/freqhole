@@ -1,0 +1,19 @@
+.flyout {
+    /* position: "fixed"; */
+    position: absolute;
+    background: black;
+    border: 1px solid magenta;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 9999;
+    width: 200px;
+    max-height: 200px;
+}
+
+.flyout .item {
+    padding: 0.5em;
+}
+.flyout .item:hover {
+    cursor: pointer;
+    background-color: #eeddee;
+    color: magenta;
+}

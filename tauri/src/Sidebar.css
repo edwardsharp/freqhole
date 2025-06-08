@@ -22,13 +22,23 @@
 }
 
 #playlist-nav {
-    font-size: 1.5em;
-    line-height: 1.5em;
+    font-size: 1rem;
+    line-height: 2rem;
     list-style: none;
     display: flex;
     flex-direction: column;
     margin: 0;
     padding: 0;
+    max-height: 75vh;
+    overflow-y: scroll;
+}
+
+#playlist-nav .sticky {
+    font-size: 1.5rem;
+    position: sticky;
+    top: 0;
+    background: black;
+    color: white;
 }
 
 #playlist-nav li:hover,
@@ -38,12 +48,23 @@
     cursor: pointer;
 }
 
-#playlist-nav .active {
-    border-left: thick solid magenta;
+#playlist-nav li {
+    border-bottom: thin solid transparent;
+    max-height: 4rem;
+    overflow: hidden;
+    text-wrap: nowrap;
+    text-overflow: ellipsis;
+}
+#playlist-nav li.active {
+    border-bottom: thin solid magenta;
 }
 
+#playlist-nav li img {
+    display: none;
+}
 #playlist-nav li:hover img {
-    filter: invert();
+    /* filter: invert(); */
+    display: inline;
 }
 
 #playlist-nav li {

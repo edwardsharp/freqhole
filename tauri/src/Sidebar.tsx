@@ -2,9 +2,17 @@ import { useSongs } from "./context";
 import { Player } from "./Player";
 import nohole from "./assets/nohole.svg";
 import "./Sidebar.css";
+import { For } from "solid-js";
 
 export function SideBar() {
-  const { filter, setFilter, setSearch } = useSongs();
+  const {
+    filter,
+    setFilter,
+    setSearch,
+    playlists,
+    playlist_id,
+    setPlaylistId,
+  } = useSongs();
 
   return (
     <div id="sidebar">
@@ -18,18 +26,43 @@ export function SideBar() {
       />
 
       <ul id="playlist-nav">
-        <li
-          onClick={() => setFilter("all")}
-          class={filter() === "all" ? "active" : ""}
-        >
-          everything
-        </li>
-        <li
-          onClick={() => setFilter("favorites")}
-          class={filter() === "favorites" ? "active" : ""}
-        >
-          heartz <img src={nohole} alt="heart" />
-        </li>
+        <div class="sticky">
+          <li
+            onClick={() => {
+              setPlaylistId(null);
+              setFilter("all");
+            }}
+            class={`sticky${filter() === "all" ? " active" : ""}`}
+          >
+            library
+          </li>
+          <li
+            onClick={() => {
+              setPlaylistId(null);
+              setFilter("favorites");
+            }}
+            class={`sticky${filter() === "favorites" ? " active" : ""}`}
+          >
+            heartz <img src={nohole} alt="heart" />
+          </li>
+        </div>
+
+        {/* playlists */}
+
+        <For each={playlists}>
+          {(playlist) => (
+            <li
+              onClick={() => {
+                setFilter("playlist");
+                setPlaylistId(`${playlist.id}`);
+              }}
+              class={playlist_id() === `${playlist.id}` ? "active" : ""}
+              title={playlist.name}
+            >
+              {playlist.name}
+            </li>
+          )}
+        </For>
       </ul>
 
       <div class="grow">&nbsp;</div>

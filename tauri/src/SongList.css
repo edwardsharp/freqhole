@@ -45,16 +45,34 @@
 
 .start {
     height: 2rem;
-    width: 2rem;
+    width: 3rem;
     align-content: center;
 }
-.end:hover img {
+.fav {
+    padding: 0 1rem;
+    width: 3rem;
+}
+.fav:hover img {
     filter: invert();
 }
-.end div {
+.fav div {
     text-align: center;
 }
 
 #song-list img {
     max-height: 1rem;
+}
+
+.menu {
+    padding: 0 1rem;
+    width: 3rem;
+}
+
+.menu:hover .hover,
+.menu .normal {
+    display: inline;
+}
+.menu:hover .normal,
+.menu .hover {
+    display: none;
 }

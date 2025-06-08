@@ -7,7 +7,7 @@ import {
   Setter,
   Accessor,
 } from "solid-js";
-import { getFavoriteSongs, querySongs, Song } from "./db";
+import { getFavoriteSongs, getPlaylists, querySongs, Song } from "./db";
 import { createArrayLiveQuery } from "./create-live-query";
 
 export interface PlayerState {
@@ -24,8 +24,12 @@ function useProviderValue() {
   const [page, setPage] = createSignal(0);
   const [pageSize, _setPageSize] = createSignal(50);
   const [search, setSearch] = createSignal("");
-  const [filter, setFilter] = createSignal<"all" | "favorites">("all");
+  const [filter, setFilter] = createSignal<"all" | "favorites" | "playlist">(
+    "all",
+  );
   const [sortKey, setSortKey] = createSignal<keyof Song>("title");
+  const [playlist_id, setPlaylistId] = createSignal<string | null>(null);
+  const [selected, setSelected] = createSignal<Set<string>>(new Set());
   const [playerState, setPlayerState] = createSignal<PlayerState>({
     playing: "idle",
     current_url: null,
@@ -41,11 +45,21 @@ function useProviderValue() {
       sortKey: sortKey(),
       offset: page() * pageSize(),
       limit: pageSize(),
+      playlist_id: playlist_id(),
     }),
-    querySongs,
+    // querySongs,
+    async (options) => {
+      const qsongz = await querySongs(options);
+      setCount(qsongz.length);
+      return qsongz;
+    },
   );
 
+  const [count, setCount] = createSignal(0);
+
   const favorites = createArrayLiveQuery(getFavoriteSongs);
+  const playlists = createArrayLiveQuery(getPlaylists);
+
   return {
     page,
     setPage,
@@ -58,7 +72,13 @@ function useProviderValue() {
     setSortKey,
     songs,
     favorites,
-    count: songs.length,
+    playlists,
+    setPlaylistId,
+    playlist_id,
+    count,
+    setCount,
+    selected,
+    setSelected,
     playerState,
     setPlayerState,
     audio,
@@ -108,7 +128,7 @@ export function songTitleOrPath(song: Song | null | undefined) {
     return [song.path.replace(`${song.base_path}/`, "")];
   return [
     song.title.replace(`${song.base_path}/`, ""),
-    `${song.artist && " - "}${song.artist}`,
-    `${song.album && "["} ${song.album} ${song.album && "]"}`,
+    `${song.artist && " - "}${song.artist} `,
+    `${song.album && " ["} ${song.album} ${song.album && "] "}`,
   ];
 }

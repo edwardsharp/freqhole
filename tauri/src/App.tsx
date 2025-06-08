@@ -7,6 +7,8 @@ import { initSeedSongs } from "./db";
 import { SideBar } from "./Sidebar";
 import { Controls } from "./Controls";
 import { FreqholeProvider } from "./context";
+import { FlyoutMenuProvider } from "./FlyoutMenuProvider";
+import { FlyoutMenu } from "./FlyoutMenu";
 
 function App() {
   const [loading, setLoading] = createSignal(true);
@@ -26,17 +28,20 @@ function App() {
 
   return (
     <FreqholeProvider>
-      {!loading() ? (
-        <div id="freqhole">
-          <SideBar />
-          <main>
-            <Controls />
-            <SongList />
-          </main>
-        </div>
-      ) : (
-        <h1>loading...</h1>
-      )}
+      <FlyoutMenuProvider>
+        {!loading() ? (
+          <div id="freqhole">
+            <SideBar />
+            <main>
+              <Controls />
+              <SongList />
+            </main>
+            <FlyoutMenu />
+          </div>
+        ) : (
+          <h1>loading...</h1>
+        )}
+      </FlyoutMenuProvider>
     </FreqholeProvider>
   );
 }
