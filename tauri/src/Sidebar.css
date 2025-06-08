@@ -1,0 +1,50 @@
+#sidebar {
+    width: 200px;
+    border-right: 1px solid #ccc;
+    padding: 1rem 0;
+    background: #f8f8f8;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    font-size: 1em;
+    color: black;
+    display: flex;
+    flex-direction: column;
+}
+
+#sidebar h1 {
+    padding-left: 1rem;
+}
+
+#sidebar #search {
+    max-width: 100%;
+    margin-bottom: 1rem;
+}
+
+#playlist-nav {
+    font-size: 1.5em;
+    line-height: 1.5em;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0 1rem;
+}
+
+#playlist-nav li:hover,
+#playlist-nav li:hover a {
+    background: #eeddee;
+    color: magenta;
+    cursor: pointer;
+}
+
+#playlist-nav a {
+    color: black;
+}
+
+@media (prefers-color-scheme: dark) {
+    #sidebar {
+        background-color: black;
+        color: white;
+    }
+}

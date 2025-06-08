@@ -16,11 +16,13 @@ async fn main() {
         .allow_methods(vec!["GET", "POST", "OPTIONS"]) // Add methods you need
         .allow_headers(vec!["Content-Type"]); // Optional: allow custom headers
 
-    let index = warp::path("songs")
+    let index = warp::path("songs.json")
         // .and(warp::path::end()) // <--- restrict to exact path
         .and(store_filter.clone())
         .and_then(|store: RustStorage| async move {
             let songs = store.get_all_songs().await.unwrap_or_default();
+            println!("ZOMG SONGZ:{}", songs.len());
+
             Ok::<_, warp::Rejection>(warp::reply::json(&songs))
         })
         .with(&cors);
@@ -34,51 +36,53 @@ async fn main() {
     // let static_files = warp::fs::dir("../pwa/").with(&cors);
     let static_dir = "../pwa";
 
-    let static_files = warp::path::tail().and_then(move |tail: warp::path::Tail| {
-        let path = PathBuf::from(format!("{}/{}", static_dir, tail.as_str()));
-        async move {
-            if !path.exists() {
-                return Ok::<_, Infallible>(
-                    warp::reply::with_status("Not Found", warp::http::StatusCode::NOT_FOUND)
-                        .into_response(),
-                );
-            }
-
-            match fs::read(&path).await {
-                Ok(contents) => {
-                    let mime = if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
-                        match ext {
-                            "json" => "application/json",
-                            "js" => "application/javascript",
-                            "css" => "text/css",
-                            "html" => "text/html",
-                            "svg" => "image/svg+xml",
-                            "ico" => "image/x-icon",
-                            _ => "application/octet-stream",
-                            // _ => mime_guess::from_path(&path)
-                            //     .first_or_octet_stream()
-                            //     .as_ref(),
-                        }
-                    } else {
-                        "application/octet-stream"
-                    };
-
-                    println!("zomg path:{} mime:{}", &tail.as_str(), &mime);
-
-                    Ok(Response::builder()
-                        .header("Content-Type", mime)
-                        .body(Body::from(contents))
-                        .unwrap()
-                        .into_response())
+    let static_files = warp::path::tail()
+        .and_then(move |tail: warp::path::Tail| {
+            let path = PathBuf::from(format!("{}/{}", static_dir, tail.as_str()));
+            async move {
+                if !path.exists() {
+                    return Ok::<_, Infallible>(
+                        warp::reply::with_status("Not Found", warp::http::StatusCode::NOT_FOUND)
+                            .into_response(),
+                    );
                 }
-                Err(_) => Ok(warp::reply::with_status(
-                    "Internal Server Error",
-                    warp::http::StatusCode::INTERNAL_SERVER_ERROR,
-                )
-                .into_response()),
+
+                match fs::read(&path).await {
+                    Ok(contents) => {
+                        let mime = if let Some(ext) = path.extension().and_then(|s| s.to_str()) {
+                            match ext {
+                                "json" => "application/json",
+                                "js" => "application/javascript",
+                                "css" => "text/css",
+                                "html" => "text/html",
+                                "svg" => "image/svg+xml",
+                                "ico" => "image/x-icon",
+                                _ => "application/octet-stream",
+                                // _ => mime_guess::from_path(&path)
+                                //     .first_or_octet_stream()
+                                //     .as_ref(),
+                            }
+                        } else {
+                            "application/octet-stream"
+                        };
+
+                        println!("zomg path:{} mime:{}", &tail.as_str(), &mime);
+
+                        Ok(Response::builder()
+                            .header("Content-Type", mime)
+                            .body(Body::from(contents))
+                            .unwrap()
+                            .into_response())
+                    }
+                    Err(_) => Ok(warp::reply::with_status(
+                        "Internal Server Error",
+                        warp::http::StatusCode::INTERNAL_SERVER_ERROR,
+                    )
+                    .into_response()),
+                }
             }
-        }
-    });
+        })
+        .with(&cors);
 
     let routes = index.or(song_file_route).or(static_files);
 
@@ -87,6 +91,7 @@ async fn main() {
 }
 
 async fn get_song_file(id: String, store: RustStorage) -> Result<impl warp::Reply, Infallible> {
+    print!("zomg get_song_file...");
     let songs = match store.get_all_songs().await {
         Ok(songs) => songs,
         Err(_) => {
@@ -97,6 +102,8 @@ async fn get_song_file(id: String, store: RustStorage) -> Result<impl warp::Repl
             .into_response())
         }
     };
+
+    print!("zomg songs: {}", songs.len());
 
     if let Some(song) = songs.into_iter().find(|s| s.id == id) {
         let path = Path::new(&song.path);

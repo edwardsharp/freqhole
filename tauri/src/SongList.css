@@ -1,0 +1,47 @@
+#song-list {
+    flex: 1;
+    overflow-y: auto;
+}
+.song-row {
+    padding: 0.5rem;
+    border-bottom: 1px solid #ddd;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.song-row:hover {
+    background: #eeddee;
+    color: magenta;
+    cursor: pointer;
+}
+.song-row.selected {
+    background: #d0f0ff;
+}
+.song-row:active {
+    opacity: 0.6;
+}
+.song-meta {
+    flex: 1;
+}
+.heart {
+    cursor: pointer;
+    color: #ccc;
+}
+.heart.favorited {
+    color: #ff00ff;
+}
+
+.start {
+    height: 2rem;
+    width: 2rem;
+    align-content: center;
+}
+.end div {
+    text-align: center;
+}
+.playing {
+    max-height: 1rem;
+    rotate: 270deg;
+}

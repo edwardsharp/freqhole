@@ -1,7 +1,7 @@
 
 [workspace]
 resolver = "2"
-members = ["pwa", "cli", "server", "shared"]
+members = ["pwa", "cli", "server", "shared", "tauri/src-tauri"]
 
 # ugh, `cargo build` in the root fails, was hoping this helped but did not :/
 # [workspace.dependencies]

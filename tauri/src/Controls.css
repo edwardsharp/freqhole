@@ -1,0 +1,26 @@
+:root {
+    padding: 0;
+}
+#controls {
+    position: sticky;
+    top: 0;
+    background: #eee;
+    color: black;
+    padding: 0.5rem;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    z-index: 1;
+    border-bottom: 1px solid #ccc;
+}
+
+button.sort {
+    font-size: 0.9rem;
+}
+
+@media (prefers-color-scheme: dark) {
+    #controls {
+        background-color: black;
+        color: white;
+    }
+}

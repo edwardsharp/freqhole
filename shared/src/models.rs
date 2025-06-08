@@ -5,6 +5,10 @@ pub struct Song {
     pub id: String,
     pub title: String,
     pub path: String,
+    pub base_path: String,
+    pub album: String,
+    pub artist: String,
+    pub seconds: u64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
