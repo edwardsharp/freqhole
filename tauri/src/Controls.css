@@ -3,8 +3,8 @@
 }
 #controls {
     position: sticky;
-    top: 0;
-    background: #eee;
+    bottom: 0;
+    background: transparent;
     color: black;
     padding: 0.5rem;
     display: flex;
@@ -18,9 +18,14 @@ button.sort {
     font-size: 0.9rem;
 }
 
+#controls .selected {
+    background: rgba(0, 0, 0, 0.7);
+    padding: 0.5rem;
+}
+
 @media (prefers-color-scheme: dark) {
     #controls {
-        background-color: black;
+        /* background-color: black; */
         color: white;
     }
 }

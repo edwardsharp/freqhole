@@ -4,6 +4,36 @@ use std::path::Path;
 
 use base64::{engine::general_purpose, Engine as _};
 
+pub fn blob_template<P: AsRef<Path>>(
+    title: &str,
+    mp3_path: P,
+    template_path: P,
+    output_path: P,
+) -> anyhow::Result<()> {
+    // Read audio and encode
+    let audio_data = fs::read(&mp3_path)?;
+    let base64_audio = general_purpose::STANDARD.encode(audio_data);
+
+    // Read template HTML
+    let template = fs::read_to_string(&template_path)?;
+
+    // Replace placeholders
+    let rendered = template
+        .replace("${title}", title)
+        .replace("${audioBlob}", &base64_audio);
+
+    // Write to output file
+    let mut out_file = fs::File::create(&output_path)?;
+    out_file.write_all(rendered.as_bytes())?;
+
+    println!(
+        "✅ Rendered HTML written to {}",
+        output_path.as_ref().display()
+    );
+
+    Ok(())
+}
+
 pub fn html_packer<P: AsRef<Path>>(paths: &[P], output_html: &str) -> anyhow::Result<()> {
     let mut blobs = String::new();
 

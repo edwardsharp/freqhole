@@ -1,0 +1,67 @@
+#playlist-header {
+    padding: 2rem;
+    display: flex;
+}
+
+#playlist-name {
+    font-size: 2rem;
+    line-height: 2.5rem;
+}
+
+#playlist-name,
+#playlist-description {
+    min-height: 3em;
+    padding: 0.5rem;
+    border-bottom: thin solid transparent;
+    /* filter: invert(1); */
+    /* font-weight: bolder; */
+    /* sometimez mix is fun? */
+    /* mix-blend-mode: hard-light; */
+    /* mix-blend-mode: difference; */
+    background: rgba(0, 0, 0, 0.3);
+    /* outline? */
+    /* text-shadow:
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000; */
+}
+
+#playlist-name.editing,
+#playlist-description.editing {
+    background: #eeddee;
+    color: magenta;
+    border-bottom-color: magenta;
+    pointer: caret;
+    text-shadow: none;
+}
+
+#playlist-header .hover-help {
+    display: none;
+}
+#playlist-description:hover .hover-help {
+    display: inline;
+}
+
+#playlist-header .menu {
+    align-items: center;
+    justify-items: center;
+    display: flex;
+    flex-grow: 1;
+    background: none;
+    min-width: 100px;
+}
+
+#playlist-header .menu:hover .hover {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+#playlist-header .menu:hover .hover,
+#playlist-header .menu .normal {
+    display: inline;
+    padding: 1rem;
+}
+#playlist-header .menu:hover .normal,
+#playlist-header .menu .hover {
+    display: none;
+}

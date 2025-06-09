@@ -1,12 +1,20 @@
 .flyout {
-    /* position: "fixed"; */
-    position: absolute;
+    position: fixed;
     background: black;
     border: 1px solid magenta;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     z-index: 9999;
     width: 200px;
     max-height: 200px;
+    overflow-x: hidden;
+    overflow-y: scroll;
+}
+
+.flyout .input {
+    position: sticky;
+    top: 0;
+    background-color: black;
+    color: white;
 }
 
 .flyout .item {

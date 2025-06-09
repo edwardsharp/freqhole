@@ -20,15 +20,16 @@ export interface PlayerState {
 export type SetPlayerState = Setter<PlayerState>;
 export type AudioState = Accessor<HTMLAudioElement>;
 
+const filters = ["all", "favorites", "playlist"] as const;
+export type Filter = (typeof filters)[number];
+
 function useProviderValue() {
   const [page, setPage] = createSignal(0);
   const [pageSize, _setPageSize] = createSignal(50);
   const [search, setSearch] = createSignal("");
-  const [filter, setFilter] = createSignal<"all" | "favorites" | "playlist">(
-    "all",
-  );
+  const [filter, setFilter] = createSignal<Filter>("all");
   const [sortKey, setSortKey] = createSignal<keyof Song>("title");
-  const [playlist_id, setPlaylistId] = createSignal<string | null>(null);
+  const [playlistId, setPlaylistId] = createSignal<string | null>(null);
   const [selected, setSelected] = createSignal<Set<string>>(new Set());
   const [playerState, setPlayerState] = createSignal<PlayerState>({
     playing: "idle",
@@ -45,7 +46,7 @@ function useProviderValue() {
       sortKey: sortKey(),
       offset: page() * pageSize(),
       limit: pageSize(),
-      playlist_id: playlist_id(),
+      playlistId: playlistId(),
     }),
     // querySongs,
     async (options) => {
@@ -74,7 +75,7 @@ function useProviderValue() {
     favorites,
     playlists,
     setPlaylistId,
-    playlist_id,
+    playlistId,
     count,
     setCount,
     selected,

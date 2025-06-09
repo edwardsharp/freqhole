@@ -15,6 +15,7 @@ serde_json = "1"
 anyhow = "1"
 lofty = "0.22.4"
 mime_guess = "2.0.5"
+argh = "0.1"
 
 [dependencies.shared]
 path = "../shared"

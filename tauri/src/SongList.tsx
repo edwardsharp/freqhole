@@ -7,7 +7,12 @@ import hole from "./assets/hole.svg";
 
 import { songTitleOrPath, useSongs } from "./context";
 import { loadSong, formatTime } from "./usePlayer";
-import { toggleFavoriteSong, Song, addToNewPlaylist } from "./db";
+import {
+  toggleFavoriteSong,
+  Song,
+  addToNewPlaylist,
+  addToPlaylist,
+} from "./db";
 
 import "./SongList.css";
 import { useFlyoutMenu } from "./FlyoutMenuProvider";
@@ -21,6 +26,9 @@ const SongList: Component = () => {
     favorites,
     selected,
     setSelected,
+    playlists,
+    page,
+    pageSize,
   } = useSongs();
 
   const [lastSelectedIndex, setLastSelectedIndex] = createSignal<number | null>(
@@ -101,8 +109,8 @@ const SongList: Component = () => {
     // document.getElementById("add-to-playlist").style.display =
     //   selected.size > 0 ? "inline-block" : "none";
   }
-  function formatIdx(idx: number) {
-    return idx.toString().padStart(2, "0");
+  function formatIdx(idx: number, page: number, pageSize: number) {
+    return (idx + page * pageSize).toString().padStart(2, "0");
   }
 
   function renderSongTitleOrPath(song: Song) {
@@ -119,14 +127,36 @@ const SongList: Component = () => {
   const contextMenu = (song: Song, x: number, y: number) => {
     console.log("zomg contextMenu!!", { x, y });
     add(song.id);
-    menu.open({ x, y }, [
-      {
-        label: "add to new playlist",
-        onClick: () =>
-          addToNewPlaylist([...selected()], `playlist-${Date.now()}`),
-      },
-      // { label: "delete", onClick: () => console.log("Delete", song.title) },
-    ]);
+
+    menu.open(
+      { x, y },
+      [
+        {
+          label: "search",
+          onClick: (val?: string) => {
+            if (!val) return;
+            addToNewPlaylist([...selected()], val);
+          },
+        },
+        ...playlists.map((p) => ({
+          label: p.name,
+          onClick: () => addToPlaylist([...selected()], `${p.id}`),
+        })),
+      ],
+      // playlists.map((p) => ({
+      //   label: p.name,
+      //   onClick: () => addToNewPlaylist([...selected()], p.name),
+      // })),
+    );
+
+    // menu.open({ x, y }, [
+    //   {
+    //     label: "add to new playlist",
+    //     onClick: () =>
+    //       addToNewPlaylist([...selected()], `playlist-${Date.now()}`),
+    //   },
+    //   // { label: "delete", onClick: () => console.log("Delete", song.title) },
+    // ]);
   };
 
   return (
@@ -136,7 +166,7 @@ const SongList: Component = () => {
           <For each={songs()}>
             {(song, idx) => (
               <div
-                class={`song-row${has(song.id) ? " selected" : ""}`}
+                class={`song-row${has(song.id) ? " selected" : ""}${playerState()?.song?.id === song.id ? " sticky-row" : ""}`}
                 onClick={(e) =>
                   rowClick(song, idx(), e.metaKey || e.ctrlKey, e.shiftKey)
                 }
@@ -163,7 +193,7 @@ const SongList: Component = () => {
                         <img src={pause} class="playing" alt="pause" />
                       )
                     ) : (
-                      formatIdx(idx())
+                      formatIdx(idx(), page(), pageSize())
                     )}
                   </span>
                   <span class="hover">

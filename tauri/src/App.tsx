@@ -9,6 +9,7 @@ import { Controls } from "./Controls";
 import { FreqholeProvider } from "./context";
 import { FlyoutMenuProvider } from "./FlyoutMenuProvider";
 import { FlyoutMenu } from "./FlyoutMenu";
+import { PlaylistHeader } from "./PlaylistHeader";
 
 function App() {
   const [loading, setLoading] = createSignal(true);
@@ -33,8 +34,9 @@ function App() {
           <div id="freqhole">
             <SideBar />
             <main>
-              <Controls />
+              <PlaylistHeader />
               <SongList />
+              <Controls />
             </main>
             <FlyoutMenu />
           </div>

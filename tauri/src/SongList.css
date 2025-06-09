@@ -11,7 +11,7 @@
 }
 
 .song-row:hover {
-    background: #eeddee;
+    /* background: #eeddee; */
     color: magenta;
     cursor: pointer;
 }
@@ -28,6 +28,7 @@
 .song-row.selected {
     color: magenta;
     border-color: magenta;
+    background: #eeddee;
 }
 .song-row:active {
     opacity: 0.6;
@@ -75,4 +76,13 @@
 .menu:hover .normal,
 .menu .hover {
     display: none;
+}
+
+.sticky-row {
+    border-top: thin solid white;
+    position: sticky;
+    top: 0;
+    bottom: 0;
+    background: black;
+    /* z-index: 2; */
 }

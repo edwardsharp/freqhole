@@ -1,8 +1,8 @@
-import { createSignal, createContext, useContext, JSX } from "solid-js";
+import { createSignal, createContext, useContext, JSX, Setter } from "solid-js";
 
 type MenuItem = {
   label: string;
-  onClick: () => void;
+  onClick: (val?: string) => void;
 };
 
 type Anchor = { x: number; y: number };
@@ -11,6 +11,8 @@ type FlyoutContextType = {
   open: (anchor: Anchor, items: MenuItem[]) => void;
   close: () => void;
   isOpen: () => boolean;
+  isFocused: () => boolean;
+  setIsFocused: Setter<boolean>;
   items: () => MenuItem[];
   anchor: () => Anchor;
 };
@@ -19,12 +21,13 @@ const FlyoutMenuContext = createContext<FlyoutContextType>();
 
 export function FlyoutMenuProvider(props: { children: JSX.Element }) {
   const [isOpen, setIsOpen] = createSignal(false);
+  const [isFocused, setIsFocused] = createSignal(false);
   const [items, setItems] = createSignal<MenuItem[]>([]);
   const [anchor, setAnchor] = createSignal<Anchor>({ x: 0, y: 0 });
 
   const open = (a: Anchor, i: MenuItem[]) => {
     const MENU_WIDTH = 200;
-    const MENU_HEIGHT = 50; // or there aboutz
+    const MENU_HEIGHT = 200; // or there aboutz
     const viewportWidth = window.innerWidth - 10;
     const viewportHeight = window.innerHeight - 10;
 
@@ -45,10 +48,12 @@ export function FlyoutMenuProvider(props: { children: JSX.Element }) {
     console.log("OPEN YR FLY!!");
   };
 
-  const close = () => setIsOpen(false);
+  const close = () => !isFocused() && setIsOpen(false);
 
   return (
-    <FlyoutMenuContext.Provider value={{ open, close, isOpen, items, anchor }}>
+    <FlyoutMenuContext.Provider
+      value={{ open, close, isOpen, items, anchor, isFocused, setIsFocused }}
+    >
       {props.children}
     </FlyoutMenuContext.Provider>
   );

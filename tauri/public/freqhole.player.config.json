@@ -1,0 +1,12 @@
+{
+  "name": "my freqhole playlist",
+  "description": "just some demo of the config used for rendering a playlist",
+  "image_path": "freqhole.png",
+  "items": [
+    {
+      "path": "freqhole.mp3",
+      "title": "freqhorn goes to hollywood",
+      "artist": "triphobia"
+    }
+  ]
+}

@@ -41,15 +41,14 @@
     color: white;
 }
 
-#playlist-nav li:hover,
-#playlist-nav li:hover a {
-    background: #eeddee;
-    color: magenta;
+#playlist-nav li:hover {
     cursor: pointer;
+    color: magenta;
 }
 
 #playlist-nav li {
     border-bottom: thin solid transparent;
+    min-height: 2rem;
     max-height: 4rem;
     overflow: hidden;
     text-wrap: nowrap;
@@ -57,14 +56,12 @@
 }
 #playlist-nav li.active {
     border-bottom: thin solid magenta;
+    background: #eeddee;
+    color: magenta;
 }
 
-#playlist-nav li img {
-    display: none;
-}
 #playlist-nav li:hover img {
-    /* filter: invert(); */
-    display: inline;
+    filter: invert();
 }
 
 #playlist-nav li {
