@@ -300,3 +300,61 @@ INSERT INTO songs (
 misc notes
 
 `docker exec -i <container_name_or_id> psql -U postgres -d electric < init.sql`
+
+
+#### other meandering notez
+
+raspi!
+
+`/etc/systemd/system/boot-init.service`
+
+```sh
+[Unit]
+Description=Run user-defined boot init script
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /boot/init.sh
+ExecStartPost=/bin/mv /boot/init.sh /boot/init.sh.done
+RemainAfterExit=true
+
+[Install]
+WantedBy=multi-user.target
+```
+
+enable it:
+
+```sh
+sudo systemctl daemon-reexec
+sudo systemctl enable boot-init.service
+```
+
+ubuntu pi cloud init thing:
+
+add this to sd card's `/boot/firmware/user-data` (or use the rapi imager)
+
+```yaml
+#cloud-config
+hostname: mypi
+users:
+  - name: pi
+    groups: sudo
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: false
+    plain_text_passwd: "raspberry"
+runcmd:
+  - apt update
+  - apt install -y nginx
+  - echo "Hello from user-data!" > /var/www/html/index.html
+```
+
+`/boot/firmware/network-config`
+
+```yaml
+version: 2
+ethernets:
+  eth0:
+    dhcp4: true
+```
