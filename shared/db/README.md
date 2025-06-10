@@ -4,8 +4,15 @@
 
 ## Schema Migrations
 
-Migrations are stored in `schema/` and executed in timestamp order.
-Use Unix timestamps in the file names to preserve order.
+migrations are just plain pg .sql files stored in `schema/` and executed in timestamp order (unix timestamps in the file names to preserve order).
+
+run `make` cmd for some helpful cli utils from `makefile`
+
+for example, to create a new migration file:
+
+```sh
+make new
+```
 
 apply all:
 ```bash
@@ -18,10 +25,62 @@ psql -U postgres -d yourdb -f schema/seeds.sql
 ```
 
 ### electric
+
+```js
+// Example using Vite's import.meta.glob
+const migrationFiles = import.meta.glob('./migrations/*.sql', { as: 'raw' });
+
+for (const path in migrationFiles) {
+  const sql = await migrationFiles[path]();
+  await pg.exec(sql);
+}
+```
+
+versioning
+```sql
+CREATE TABLE IF NOT EXISTS schema_versions (
+  filename TEXT PRIMARY KEY,
+  applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+```js
+const result = await pg.query('SELECT 1 FROM schema_versions WHERE filename = $1', [filename]);
+
+if (result.rows.length === 0) {
+  await pg.exec(sqlContent);
+  await pg.query('INSERT INTO schema_versions (filename) VALUES ($1)', [filename]);
+}
+```
+
+then could use with (or without) electric:
+```js
+import { electricSync } from '@electric-sql/pglite-sync';
+
+const pg = await PGlite.create({
+  dataDir: 'idb://electric-music-db',
+  extensions: {
+    electric: electricSync(),
+  },
+});
+```
+
+note: the rest of this section is probably out-of-date info:
+
 install the electric cli `npm install -g @electric-sql/cli`
 then compile with electric: `electric migrate compile schema/`
 
 ...then restart your sync server (or client with hot reload)
+
+is the cli deprecated?! see also: `@databases/pg-migrations`
+
+https://www.atdatabases.org/docs/pg-migrations
+
+```sh
+pg-migrations apply --directory ./db/migrations
+```
+
+might need to look into `@electric-sql/client` see also: https://github.com/electric-sql/electric/blob/main/examples/write-patterns/package.json
+
 
 
 ### notes about `electric migrate compile`
@@ -168,6 +227,48 @@ END
 $$;
 ```
 
+run `electric migrate compile` to prepare migration output
+
+run `electrify` in PGlite instance using a compiled schema
+
+
+blob data
+```js
+// Say you have a Blob or File object
+const file = new File([data], "song.wav");
+const arrayBuffer = await file.arrayBuffer();
+const uint8 = new Uint8Array(arrayBuffer);
+
+// Save it to Electric
+await db.media_blobs.create({
+  data: uint8,  // this will go into BYTEA
+  mime: file.type,
+  sha256: await hashIt(uint8),
+  size: file.size
+});
+
+// read audio
+const audioBlob = new Blob([blobRow.data], { type: blobRow.mime });
+const audioUrl = URL.createObjectURL(audioBlob);
+
+const audio = new Audio(audioUrl);
+audio.play(); // 👂💥
+
+// read imgage data
+const imageBlob = new Blob([blobRow.data], { type: blobRow.mime });
+const imageUrl = URL.createObjectURL(imageBlob);
+
+const img = document.createElement("img");
+img.src = imageUrl;
+document.body.appendChild(img);
+
+// or jsx-style
+const BlobImage = () => <img src={URL.createObjectURL(new Blob([blobRow.data], { type: blobRow.mime }))} />
+// take care not to re-call createObjectURL every render — it leaks memory if you don't revoke it.
+URL.revokeObjectURL(audioUrl);
+
+```
+
 #### notes on zod types
 
 perhaps metadata blobs could begin to have some structure?? but still fall back `catchall` to any
@@ -302,7 +403,159 @@ misc notes
 `docker exec -i <container_name_or_id> psql -U postgres -d electric < init.sql`
 
 
+#### pglite stuff
+
+`/dev/blob`
+PGlite has support for importing and exporting via the SQL COPY TO/FROM command by using a virtual /dev/blob device.
+
+To import a file, pass the File or Blob in the query options as blob, and copy from the /dev/blob device.
+
+```ts
+await pg.query("COPY my_table FROM '/dev/blob';", [], {
+  blob: MyBlob,
+})
+```
+
+To export a table or query to a file, you just need to write to the /dev/blob device; the file will be returned as blob on the query results:
+
+```ts
+const ret = await pg.query("COPY my_table TO '/dev/blob';")
+// ret.blob is a `Blob` object with the data from the copy.
+```
+
+REPL
+
+```js
+// npm install @electric-sql/pglite-repl
+import { PGlite } from '@electric-sql/pglite'
+import { Repl } from '@electric-sql/pglite-repl'
+
+function MyComponent() {
+  const pg = new PGlite()
+
+  return (
+    <>
+      <Repl
+        pg={pg}
+        theme="dark"
+        border?: boolean // Outer border on the component, defaults to false
+        lightTheme?: Extension
+        darkTheme?: Extension
+
+      />
+    </>
+  )
+}
+```
+
+pgdump for browser: https://pglite.dev/docs/pglite-tools
+
+```js
+import { PGlite } from '@electric-sql/pglite'
+import { pgDump } from '@electric-sql/pglite-tools/pg_dump'
+
+const pg = await PGlite.create()
+
+// Create a table and insert some data
+await pg.exec(`
+  CREATE TABLE test (
+    id SERIAL PRIMARY KEY,
+    name TEXT
+  );
+`)
+await pg.exec(`
+  INSERT INTO test (name) VALUES ('test');
+`)
+
+// store the current search path so it can be used in the restored db
+const initialSearchPath = (
+  await pg1.query<{ search_path: string }>('SHOW SEARCH_PATH;')
+).rows[0].search_path
+
+// Dump the database to a file
+const dump = await pgDump({ pg })
+// Get the dump text - used for restore
+const dumpContent = await dump.text()
+
+// Create a new database
+const restoredPG = await PGlite.create()
+// ... and restore it using the dump
+await restoredPG.exec(dumpContent)
+
+// optional - after importing, set search path back to the initial one
+await restoredPG.exec(`SET search_path TO ${initialSearchPath};`)
+```
+
+yay blob file handing https://pglite.dev/examples/copy
+
+yay perl https://pglite.dev/examples/plpgsql
+
+yay fts (full text search) https://pglite.dev/examples/fts
+
+yay parametrised query https://pglite.dev/examples/query-params
+
+note on worker import
+
+```js
+import PGWorker from './worker.js?worker'
+export const pglite = new PGliteWorker(
+  new PGWorker({
+    type: 'module',
+      name: 'pglite-worker',
+    }),
+    {
+      // ...your options here
+    }
+  },
+)
+```
+
+#### config
+
+so a singleton table that only ever has one row (see schema/_create_config.sql)
+
+🔁 In JS or SQL
+
+```sql
+SELECT * FROM config;
+UPDATE config SET theme = 'dark';
+```
+
+or:
+
+```ts
+await db.config.update({
+  where: { id: 'config' },
+  set: { theme: 'dark' }
+});
+```
+
+🔄 Optionally Seed Defaults
+pre-load the single row in init.sql or seeds.sql:
+
+```sql
+INSERT INTO config (id, theme, volume, show_tips) VALUES ('config', 'light', 75, true);
+```
+
+or just rely on the defaults and:
+
+```sql
+INSERT INTO config DEFAULT VALUES;
+```
+
+
 #### other meandering notez
+
+
+oh look into: `VitePWA`
+```js
+import { defineConfig } from 'vite'
+import { VitePWA } from 'vite-plugin-pwa'
+```
+
+the "example-backend" https://github.com/electric-sql/electric/blob/main/.support/docker-compose.yml
+
+
 
 raspi!
 
@@ -357,4 +610,146 @@ version: 2
 ethernets:
   eth0:
     dhcp4: true
+```
+
+browser persistance check
+
+```js
+/** Check if storage is persisted already.
+  @returns {Promise<boolean>} Promise resolved with true if current origin is
+  using persistent storage, false if not, and undefined if the API is not
+  present.
+*/
+async function isStoragePersisted() {
+  return await navigator.storage && navigator.storage.persisted ?
+    navigator.storage.persisted() :
+    undefined;
+}
+
+/** Tries to convert to persisted storage.
+  @returns {Promise<boolean>} Promise resolved with true if successfully
+  persisted the storage, false if not, and undefined if the API is not present.
+*/
+async function persist() {
+  return await navigator.storage && navigator.storage.persist ?
+    navigator.storage.persist() :
+    undefined;
+}
+
+/** Queries available disk quota.
+  @see https://developer.mozilla.org/en-US/docs/Web/API/StorageEstimate
+  @returns {Promise<{quota: number, usage: number}>} Promise resolved with
+  {quota: number, usage: number} or undefined.
+*/
+async function showEstimatedQuota() {
+  return await navigator.storage && navigator.storage.estimate ?
+    navigator.storage.estimate() :
+    undefined;
+}
+
+/** Tries to persist storage without ever prompting user.
+  @returns {Promise<string>}
+    "never" In case persisting is not ever possible. Caller don't bother
+      asking user for permission.
+    "prompt" In case persisting would be possible if prompting user first.
+    "persisted" In case this call successfully silently persisted the storage,
+      or if it was already persisted.
+*/
+async function tryPersistWithoutPromtingUser() {
+  if (!navigator.storage || !navigator.storage.persisted) {
+    return "never";
+  }
+  let persisted = await navigator.storage.persisted();
+  if (persisted) {
+    return "persisted";
+  }
+  if (!navigator.permissions || !navigator.permissions.query) {
+    return "prompt"; // It MAY be successful to prompt. Don't know.
+  }
+  const permission = await navigator.permissions.query({
+    name: "persistent-storage"
+  });
+  if (permission.state === "granted") {
+    persisted = await navigator.storage.persist();
+    if (persisted) {
+      return "persisted";
+    } else {
+      throw new Error("Failed to persist");
+    }
+  }
+  if (permission.state === "prompt") {
+    return "prompt";
+  }
+  return "never";
+}
+
+async function initStoragePersistence() {
+  const persist = await tryPersistWithoutPromtingUser();
+  switch (persist) {
+    case "never":
+      console.log("Not possible to persist storage");
+      break;
+    case "persisted":
+      console.log("Successfully persisted storage silently");
+      break;
+    case "prompt":
+      console.log("Not persisted, but we may prompt user when we want to.");
+      // then do: navigator.storage.persist()
+      break;
+  }
+}
+```
+
+some misc tauri js stuff
+
+```rust
+// # returing array bufferz
+use tauri::ipc::Response;
+#[tauri::command]
+fn read_file() -> Response {
+  let data = std::fs::read("/path/to/file").unwrap();
+  tauri::ipc::Response::new(data)
+}
+
+// errorz
+#[tauri::command]
+fn login(user: String, password: String) -> Result<String, String> {
+  if user == "tauri" && password == "tauri" {
+    // resolve
+    Ok("logged_in".to_string())
+  } else {
+    // reject
+    Err("invalid credentials".to_string())
+  }
+}
+// js example:
+// invoke('login', { user: 'tauri', password: '0j4rijw8=' })
+//   .then((message) => console.log(message))
+//   .catch((error) => console.error(error));
+
+// note on error typez
+// create the error type that represents all errors possible in our program
+#[derive(Debug, thiserror::Error)]
+enum Error {
+  #[error(transparent)]
+  Io(#[from] std::io::Error)
+}
+
+// we must manually implement serde::Serialize
+impl serde::Serialize for Error {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: serde::ser::Serializer,
+  {
+    serializer.serialize_str(self.to_string().as_ref())
+  }
+}
+
+#[tauri::command]
+fn my_custom_command() -> Result<(), Error> {
+  // This will return an error
+  std::fs::File::open("path/that/does/not/exist")?;
+  // Return `null` on success
+  Ok(())
+}
 ```

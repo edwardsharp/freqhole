@@ -2,13 +2,15 @@
 CREATE TABLE media_blobs (
     -- id UUID PRIMARY KEY,
     id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
+    data BYTEA,
     sha256 TEXT NOT NULL,
     size BIGINT,
     mime TEXT,
-    created_at TIMESTAMPTZ DEFAULT now()
     source_client_id TEXT,
     local_path TEXT,
     metadata JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT now()
+    updated_at TIMESTAMPTZ DEFAULT now(),
 );
 
 CREATE INDEX idx_media_blobs_path ON media_blobs (path);

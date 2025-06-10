@@ -6,7 +6,7 @@ CREATE TABLE playlists (
     description TEXT,
     image TEXT,
     client_id TEXT,
-    created_at TIMESTAMPTZ DEFAULT now ()
+    created_at TIMESTAMPTZ DEFAULT now () updated_at TIMESTAMPTZ DEFAULT now (),
 );
 
 CREATE INDEX idx_playlists_title ON playlists (title);

@@ -15,6 +15,8 @@ export type PGliteWithLive = PGlite & {
 };
 
 export async function setupElectric() {
+  // might consider `relaxedDurability: true`
+  // beter perf for IndexedDB
   const pg = await PGlite.create({
     dataDir: "idb://electric-music-db",
     extensions: {

@@ -10,11 +10,11 @@ services:
       POSTGRES_PASSWORD: supersecretpazzword
     ports:
       - 54321:5432
+    # note need to use different way to run init.sql if using volumes /var/lib/postgresql/data
     # tmpfs:
     #   - /var/lib/postgresql/data
-    #   - /tmp
     volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./schema/init.sql:/docker-entrypoint-initdb.d/init.sql
     tmpfs:
       - /tmp
     command:

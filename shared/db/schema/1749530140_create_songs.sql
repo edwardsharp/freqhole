@@ -8,8 +8,9 @@ CREATE TABLE songs (
     album TEXT,
     seconds INTEGER,
     client_id TEXT,
-    created_at TIMESTAMPTZ DEFAULT now()
     metadata JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT now()
+    updated_at TIMESTAMPTZ DEFAULT now(),
 );
 
 CREATE INDEX idx_songs_title ON songs (title);

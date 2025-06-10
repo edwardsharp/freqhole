@@ -10,4 +10,6 @@ CREATE TABLE IF NOT EXISTS schema_versions (
 \i 1749530140_create_songs.sql
 \i 1749530181_create_media_blobs.sql
 \i 1749530218_create_playlists.sql
-\i 1749530244_playlist_items.sql
+\i 1749530244_playlist_songs.sql
+\i 1749574909_create_config.sql
+\i 1749582703_create_favz.sql
