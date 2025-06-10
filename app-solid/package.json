@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "serve": "vite preview",
-    "tauri": "tauri",
+    "tauri": "cd ../app-tauri/ && tauri",
     "web-component:build": "vite build --config vite.wc.config.ts"
   },
   "license": "MIT",

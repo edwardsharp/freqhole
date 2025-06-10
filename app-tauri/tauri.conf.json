@@ -5,11 +5,11 @@
   "identifier": "net.freqhole.app",
   "build": {
     "beforeDevCommand": {
-      "cwd": "../solid-app",
+      "cwd": "../app-solid",
       "script": "npm run dev"
     },
     "beforeBuildCommand": {
-      "cwd": "../solid-app",
+      "cwd": "../app-solid",
       "script": "npm run build"
     },
     "devUrl": "http://localhost:1420",
